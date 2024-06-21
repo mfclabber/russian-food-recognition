@@ -84,3 +84,9 @@ python evaluate.py --test-data path_to_test_data
 ```
 
 This will provide metrics such as precision, recall, and mean Average Precision (mAP).
+
+# TODO:
+- [ ] Make the project modular
+- [ ] Finetuning YOLOv10, DERT
+- [ ] Rewrite file with annotations
+- [ ] To configure TensorBoard
