@@ -23,7 +23,7 @@ This repository provides a robust framework for recognizing various Russian dish
 The Russian Food Recognition project leverages the Faster R-CNN model to detect and classify different types of Russian food in images. Faster R-CNN is a state-of-the-art object detection model that provides high accuracy and speed, making it suitable for real-time food recognition applications.
 
 <p align="center">
-  <img src=./samples/sample_1.png/>
+  <img src=./samples/sample_4.png/>
 </p>
 
 ## Features
