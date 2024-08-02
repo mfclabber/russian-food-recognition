@@ -118,7 +118,7 @@ The Russian Food Recognition project leverages the Faster R-CNN model to detect 
 |  model.roi_heads.box_predictor.bbox_pred.weight  |   528384   |
 |   model.roi_heads.box_predictor.bbox_pred.bias   |    516     |
 
-Total Trainable Params: 41 950 036
+**Total Trainable Params: 41 950 036**
 
 
 <!-- ## Installation
