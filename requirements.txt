@@ -1,0 +1,6 @@
+torch
+torchvision
+streamlit
+pil
+numpy
+typing
