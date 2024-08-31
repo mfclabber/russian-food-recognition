@@ -1,6 +1,8 @@
 torch
 torchvision
 streamlit
-pil
+pillow
+albumentations
+tqdm
 numpy
 typing

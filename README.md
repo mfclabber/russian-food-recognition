@@ -13,6 +13,7 @@ This repository provides a robust framework for recognizing various Russian dish
 - [Overview](#overview)
 - [Features](#features)
 - [Dataset](#dataset)
+- [Application](#application)
 - [Parameters](#parameters)
 
 ## Overview
@@ -29,6 +30,13 @@ The Russian Food Recognition project leverages the Faster R-CNN model to detect 
 - **Extensive Dataset:** Trained on a diverse dataset of Russian dishes.
 - **Scalability:** Easily adaptable to include more food categories or different cuisines.
 - **Modular Design:** Clear separation of data processing, model training, and evaluation modules.
+
+## Application
+You can vizualize this project in application
+
+```bash
+streamlit run app.py
+```
 
 ## Parameters
 
