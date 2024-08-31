@@ -3,6 +3,8 @@ torchvision
 streamlit
 pillow
 albumentations
+matplotlib
+pandas
 tqdm
 numpy
 typing
