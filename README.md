@@ -20,7 +20,7 @@ This repository provides a robust framework for recognizing various Russian dish
 The Russian Food Recognition project leverages the Faster R-CNN model to detect and classify different types of Russian food in images. Faster R-CNN is a state-of-the-art object detection model that provides high accuracy and speed, making it suitable for real-time food recognition applications.
 
 <p align="center">
-  <img src=./assets/sample_7.png/>
+  <img src=./assets/sample_1.png/>
 </p>
 
 ## Features
@@ -150,7 +150,7 @@ This will output the image with detected food items highlighted and classified. 
 
 ## Dataset
 
-The [dataset](https://huggingface.co/datasets/mllab/alfafood) used for training consists of a variety of images representing different Russian dishes. Each image is annotated with bounding boxes and labels corresponding to the food items present.
+The dataset on [HF](https://huggingface.co/datasets/mllab/alfafood) and on [Kaggle](https://www.kaggle.com/datasets/mfclabber/alfafood) in compressed image format used for training consists of a variety of images representing different Russian dishes. Each image is annotated with bounding boxes and labels corresponding to the food items present.
 
 <!-- ## Training
 

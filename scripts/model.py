@@ -31,9 +31,7 @@ class SSD_MobileNetV3(torch.nn.Module):
     def __init__(self, num_classes: int=127) -> None:
         super().__init__()
 
-        self.model = torchvision.models.detection.ssdlite320_mobilenet_v3_large(pretrained=False, 
-                                                                                pretrained_backbone=False, 
-                                                                                num_classes=num_classes + 1)
+        self.model = torchvision.models.detection.ssdlite320_mobilenet_v3_large(pretrained=False, pretrained_backbone=False, num_classes=num_classes + 1)
         self.num_classes = num_classes + 1
 
         for child in list(self.model.children()):

@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from scripts.utils import *
 from scripts.model import SSD_MobileNetV3
 
+IMAGE_SHAPE = (640, 480)
 
 APP_NAME = "AlfaFood SSD_MobileNetV3.py"
 
@@ -19,9 +20,10 @@ MODEL_WEIGHTS_URL = (
     ""
 )
 
-MODEL_PATH = "data/pets_faster_resnetfpn50.pth"
+MODEL_PATH = "weights/best_model.pth"
 
-# Sample images in the sample_images folder
+DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    
 SAMPLE_IMAGES = [
     Path("sample_images/0.jpg"),
     Path("sample_images/1.jpg"),
@@ -30,19 +32,17 @@ SAMPLE_IMAGES = [
     Path("sample_images/4.jpg"),
 ]
 
-NUM_CLASSES = 127
+NUM_CLASSES = 128
 
 
 COLORS = list((random.randint(40, 240), random.randint(40, 255), random.randint(60, 255)) for i in range(129))
 
 
-@st.cache(show_spinner=False)
+@st.cache_data
 def get_file_content_as_string(path):
     """
     Download a single file and make its content available as a string.
     """
-    # url = 'https://raw.githubusercontent.com/insert_path_to_repo_here' + path
-    # response = urllib.request.urlopen(url)
     with open(path, encoding="utf-8", errors="ignore") as f:
         response = f.read()
     return response
@@ -61,7 +61,7 @@ def show_image(image_path):
         print("Invalid Image")
 
 
-@st.cache(show_spinner=False)
+@st.cache_data
 def load_image_url(url):
     """ Loads an image given the url """
     with urllib.request.urlopen(url) as response:
@@ -73,11 +73,11 @@ def load_image_url(url):
                           T.Resize(480, 640),
                           T.ToTensor(image)
                          )
-    image_tensor = transform(image).to(device)
+    image_tensor = transform(image).to(DEVICE)
     return image_tensor
 
 
-@st.cache(show_spinner=False)
+@st.cache_data
 def load_image_tensor(image_path, device):
     """
     Loads an image into pytorch tensor. 
@@ -86,7 +86,7 @@ def load_image_tensor(image_path, device):
     return image_tensor 
 
 
-@st.cache(show_spinner=False)
+@st.cache_data
 def load_image_file(image_path):
     """
     Loads an Image file
@@ -107,8 +107,6 @@ def download_file(file_path, save_path):
     if os.path.exists(save_path):
         return
     else:
-        # Download from the url
-        # These are handles to two visual elements to animate.
         weights_warning, progress_bar = None, None
         try:
             weights_warning = st.warning("Downloading %s..." % file_path)
@@ -125,14 +123,11 @@ def download_file(file_path, save_path):
                         counter += len(data)
                         output_file.write(data)
 
-                        # We perform animation by overwriting the elements.
                         weights_warning.warning(
                             "Downloading %s... (%6.2f/%6.2f MB)"
                             % (file_path, counter / MEGABYTES, length / MEGABYTES)
                         )
                         progress_bar.progress(min(counter / length, 1.0))
-
-        # Finally, we remove these visual elements by calling .empty().
         finally:
             if weights_warning is not None:
                 weights_warning.empty()
@@ -141,57 +136,90 @@ def download_file(file_path, save_path):
 
 
 def create_model():
-    """ Instatiate your Mantis Model Here """
-    model = faster_rcnn.model(num_classes=NUM_CLASSES)
+    """Initialize model"""
+    model = SSD_MobileNetV3(num_classes=NUM_CLASSES)
     return model
 
 
-# We cache the loading function to make is very fast on reload.
-@st.cache(allow_output_mutation=True)
+@st.cache_data
 def load_model(model_path):
     """ Create the model and load state dict here """
     model = create_model()
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.load_state_dict(torch.load(model_path, map_location=DEVICE))
     model.eval()  # Set to eval mode
-    model.to(device)
+    model.to(DEVICE)
     return model
 
 
 # TODO
 
-# # Forward pass from the model
-# # You can customize this as per your needs
-# # We cache it for faster inference
-# @st.cache(allow_output_mutation=True)
-# def predict(model, image, confidence_threshold=0.3, overlap_threshold=0.3):
-#     """
-#     Forward pass through the model and get its predictions. 
-#     """
-#     # Cumbersome PyTorch code.
-#     # with torch.no_grad():
-#     #     prediction = model(image_batch)[0] # Maybe 0 is needed verify once.
-#     #     selected = prediction["scores"] > confidence_threshold
-#     #     predictions = {k: v[selected] for k, v in prediction.items()}
+def objects_threshold_scores(bboxes: torch.Tensor, 
+                         labels: torch.Tensor=None, 
+                         scores: torch.Tensor=None,
+                         threshold_score: float=0.1):
+    bboxes_copy = copy.deepcopy(bboxes)
+    labels_copy = copy.deepcopy(labels)
+    scores_copy = copy.deepcopy(scores)
 
-#     #     for pred in predictions:
-#     #         boxes = pred['boxes'].data.cpu().numpy()
-#     #         labels = pred['labels'].data.cpu().numpy()
-#     #         scores = pred['scores'].data.cpu().numpy()
+    bboxes = torch.Tensor([])
+    labels, scores = list(), list()
+    for i, score in enumerate(scores_copy):
+        if score >= threshold_score:
+            bboxes = torch.cat((bboxes, bboxes_copy[i].unsqueeze(dim=0)), dim=0)
+            labels.append(labels_copy[i])
+            scores.append(score)
+    
+#     bboxes = torch.Tensor(bboxes).unsqueeze(dim=0)
+    labels = torch.Tensor(labels)
+    scores = torch.Tensor(scores)
 
-#     # Since this is a mantis model we can directly use model.predict
-#     # Mantisshrimp eases out this processing.
-#     eval_ds = Dataset.from_images([image])
-#     batch, samples = faster_rcnn.build_infer_batch(eval_ds)
-#     preds = faster_rcnn.predict(
-#         model=model, batch=batch, detection_threshold=confidence_threshold
-#     )
-#     labels = preds[0]["labels"]
-#     scores = preds[0]["scores"]
-#     show_pred(image, preds[0], show=False, class_map=datasets.pets.class_map())
-#     fig = plt.gcf()
-#     fig.canvas.draw()
-#     fig_arr = np.array(fig.canvas.renderer.buffer_rgba())
-#     return fig_arr, labels, scores
+    del bboxes_copy, labels_copy, scores_copy
+
+    return bboxes, labels, scores
+
+
+
+def show_image_with_objects(image: np.array, 
+                            bboxes: torch.Tensor, 
+                            labels: torch.Tensor=None, 
+                            scores: torch.Tensor=None,
+                            threshold_score: float=0.5):
+
+    image = Image.fromarray(image.transpose(1, 2, 0))
+
+    if scores != None:
+        bboxes, labels, scores = objects_threshold_scores(bboxes, labels, scores, threshold_score)
+
+    for i in range(len(bboxes)):
+        draw = ImageDraw.Draw(image)
+        draw.rectangle(bboxes[i].numpy(), outline = color[labels[i].int()], width=2)
+
+        if scores != None:
+            bbox = draw.textbbox((bboxes[i][0], bboxes[i][1]), f"ID{int(labels[i])} {scores[i] * 100:.2f}%")
+            draw.rectangle((bbox[0]-2, bbox[1]-2, bbox[2]+2, bbox[3]+2), fill=(0, 0, 0))
+            draw.text((bboxes[i][0], bboxes[i][1]), f"ID{int(labels[i])} {scores[i] * 100:.2f}%", color[labels[i].int()])
+        else:
+            bbox = draw.textbbox((bboxes[i][0], bboxes[i][1]), f"ID{int(labels[i])}")
+            draw.rectangle((bbox[0]-2, bbox[1]-2, bbox[2]+2, bbox[3]+2), fill=(0, 0, 0))
+            draw.text((bboxes[i][0], bboxes[i][1]), f"ID{int(labels[i])}", color[labels[i]])
+    return image
+
+
+@torch.no_grad
+def predict(model, image, confidence_threshold=0.3, overlap_threshold=0.3):
+    """
+    Forward pass through the model and get its predictions. 
+    """
+
+    with torch.no_grad():
+        model.eval()
+        model.to(DEVICE)
+        outputs = model.predict(torch.Tensor(image).unsqueeze(dim=0).to(DEVICE))
+    
+
+    bboxes, labels, scores = objects_threshold_scores(outputs[0]['boxes'].to('cpu'), outputs[0]['labels'], outputs[0]['scores'], confidence_threshold)
+
+    return bboxes, labels, scores
 
 
 # # This sidebar UI lets the user select parameters for the object detector.
@@ -218,87 +246,103 @@ def load_model(model_path):
 #     return object_type, min_objs, max_objs
 
 
-# if __name__ == "__main__":
-#     # Get the readme text from readme file
-#     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-#     readme_text = st.markdown(get_file_content_as_string("Info.md"))
-#     # Once we have the dependencies, add a selector for the app mode on the sidebar.
-#     st.sidebar.title("What to do ?")
-#     app_mode = st.sidebar.selectbox(
-#         "Choose the app mode", ["About the App", "Run the app", "Show the source code"]
-#     )
+if __name__ == "__main__":
+    
+    model = load_model(MODEL_PATH)
 
-#     if app_mode == "About the App":
-#         # Render the Readme of the app here. Do not clear it.
-#         st.sidebar.success('To continue select "Run the app".')
+    st.write("### [by mfclabber](https://github.com/mfclabber)")
+    st.write("### ITMO University")
 
-#     elif app_mode == "Show the source code":
-#         readme_text.empty()
-#         st.code(get_file_content_as_string(APP_NAME))
+    readme_text = st.markdown(get_file_content_as_string("INFO_APP.md"))
+    color = list((random.randint(40, 240), random.randint(40, 255), random.randint(60, 255)) for i in range(129))
 
-#     elif app_mode == "Run the app":
-#         readme_text.empty()
-#         flag = 0
-#         chk_fg = 0
-#         st.write("# Running the object detection App")
-#         st.write("- Adjust the thresholds, Upload a file and click predict")
-#         st.write("- It might take time to download the model.")
-#         st.write("- To load a sample image just click on the load sample image")
+    st.sidebar.title("What to do?")
 
-#         # Download the model or use from system.
-#         # download_file(MODEL_BUCKET_URL, SAVE_PATH)
-#         # Extracts the downloaded zip model
-#         # You can skip these model extract step if you directly have a .pt file in data folder
-#         if not os.path.exists(MODEL_PATH):
-#             if zipfile.is_zipfile(SAVE_PATH):
-#                 with zipfile.ZipFile(SAVE_PATH, "r") as zip:
-#                     zip.extractall(DATA_PATH)
+    app_mode = st.sidebar.selectbox(
+        "Choose the app mode", ["About the App", "Run the app", "Show the source code"]
+    )
 
-#         confidence_threshold, overlap_threshold = object_detector_ui()
-#         object_type, min_objs, max_objs = object_selector_ui()
+    if app_mode == "About the App":
+        st.image("./assets/sample_7.png")
+        st.sidebar.success('To continue select "Run the app".')
 
-#         if st.button("Load a sample Image"):
-#             # Just load an image from sample_images folder
-#             random_image = random.choice(SAMPLE_IMAGES)
-#             st.image(random_image)
-#             image = load_image_file(random_image)
-#             flag = 1
+    elif app_mode == "Show the source code":
+        readme_text.empty()
+        st.write("You can find source code from my [GitHub](https://github.com/mfclabber/russian-food-recognition)")
 
-#         st.write("# Upload an Image to get its predictions")
+    elif app_mode == "Run the app":
+        readme_text.empty()
 
-#         img_file_buffer = st.file_uploader("", type=["png", "jpg", "jpeg"])
-#         if img_file_buffer is not None:
-#             image = load_image_file(img_file_buffer)
-#             if image is not None:
-#                 st.image(
-#                     image,
-#                     caption=f"Your amazing image has shape {image.shape[0:2]}",
-#                     use_column_width=True,
-#                 )
-#                 flag = 1
-#             else:
-#                 print("Invalid input")
+        st.write("# Running the object detection App")
+        col1, col2, col3 = st.columns(3)
 
-#         # Load Pytorch model here. You can come here automatically if you have downloaded pt file itself.
-#         model = load_model(MODEL_PATH)
+        with col1:
+            st.write(' ')
 
-#         if flag == 1:
-#             image_out, labels, scores = predict(
-#                 model, image, confidence_threshold, overlap_threshold
-#             )
-#             if len(labels) == 0:
-#                 st.write("No relevant object detected in the image")
-#             else:
-#                 st.image(image_out, use_column_width=True)
-#                 st.write("- Image with detection")
-#                 for i in range(len(labels)):
-#                     if OBJECTS_TO_DETECT[labels[i]] == object_type:
-#                         st.write("Successfully Detected object {}".format(object_type))
-#                         chk_fg = 1
-#                     st.write(
-#                         "Detected %s, with confidence %0.2f"
-#                         % (OBJECTS_TO_DETECT[labels[i]], scores[i])
-#                     )
+        with col2:
+            st.image("logo.jpeg")
 
-#                 if chk_fg == 1:
-#                     st.write("Detected the required object: {}".format(object_type))
+        with col3:
+            st.write(' ')
+
+        st.write("## To load a sample image just click on the load sample image")
+
+        if st.button("Load a sample Image"):
+            random_image_path = random.choice(SAMPLE_IMAGES)
+            image = np.array(Image.open(random_image_path).convert('RGB')).transpose(2, 0, 1)
+            st.image(image.transpose(1, 2, 0), caption="Original image")
+ 
+            bboxes, labels, scores = predict(model, torch.Tensor(image))
+            bboxes, labels, scores = objects_threshold_scores(bboxes.to('cpu'), labels, scores, 0.4)
+
+            image_new = show_image_with_objects(image, bboxes, labels, scores, 0.3)
+
+            st.image(image_new, caption="Predicting labels on image")
+
+        st.write("## Upload an Image to get its predictions")
+
+        img_file_buffer = st.file_uploader("", type=["png", "jpg", "jpeg"])
+        if img_file_buffer is not None:
+            image = load_image_file(img_file_buffer)
+            if image is not None:
+                st.image(
+                    image,
+                    caption=f"Your image has shape {image.shape[0:2]}",
+                )
+
+                image = np.array(Image.open(img_file_buffer).convert('RGB')).transpose(2, 0, 1)
+    
+                bboxes, labels, scores = predict(model, torch.Tensor(image))
+                bboxes, labels, scores = objects_threshold_scores(bboxes.to('cpu'), labels, scores, 0.4)
+
+                image_new = show_image_with_objects(image, bboxes, labels, scores, 0.3)
+
+                st.image(image_new, caption="Predicting labels on image")
+                
+            else:
+                st.write("### INVALID INPUT")
+
+        # st.image(image)
+        # Load Pytorch model here. You can come here automatically if you have downloaded pt file itself.
+        # model = load_model(MODEL_PATH)
+
+    #     if flag == 1:
+    #         image_out, labels, scores = predict(
+    #             model, image, confidence_threshold, overlap_threshold
+    #         )
+    #         if len(labels) == 0:
+    #             st.write("No relevant object detected in the image")
+    #         else:
+    #             st.image(image_out, use_column_width=True)
+    #             st.write("- Image with detection")
+    #             for i in range(len(labels)):
+    #                 if OBJECTS_TO_DETECT[labels[i]] == object_type:
+    #                     st.write("Successfully Detected object {}".format(object_type))
+    #                     chk_fg = 1
+    #                 st.write(
+    #                     "Detected %s, with confidence %0.2f"
+    #                     % (OBJECTS_TO_DETECT[labels[i]], scores[i])
+    #                 )
+
+    #             if chk_fg == 1:
+    #                 st.write("Detected the required object: {}".format(object_type))
