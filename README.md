@@ -32,7 +32,9 @@ The Russian Food Recognition project leverages the Faster R-CNN model to detect 
 - **Modular Design:** Clear separation of data processing, model training, and evaluation modules.
 
 ## Application
-You can vizualize this project in application
+You can vizualize this project in [application](https://russian-food-recognition.streamlit.app/)
+
+or run locally:
 
 ```bash
 streamlit run app.py
