@@ -18,7 +18,7 @@ This repository provides a robust framework for recognizing various Russian dish
 
 ## Overview
 
-The Russian Food Recognition project leverages the Faster R-CNN model to detect and classify different types of Russian food in images. Faster R-CNN is a state-of-the-art object detection model that provides high accuracy and speed, making it suitable for real-time food recognition applications.
+The Russian Food Recognition project leverages the Faster R-CNN and SSD models to detect and classify different types of Russian food in images. Faster R-CNN is a state-of-the-art object detection model that provides high accuracy and speed, making it suitable for real-time food recognition applications.
 
 <p align="center">
   <img src=./assets/sample_7.png/>
@@ -26,7 +26,7 @@ The Russian Food Recognition project leverages the Faster R-CNN model to detect 
 
 ## Features
 
-- **High Accuracy:** Utilizes Faster R-CNN for precise food detection and classification.
+- **High Accuracy:** Utilizes Faster R-CNN and SSD for precise food detection and classification.
 - **Extensive Dataset:** Trained on a diverse dataset of Russian dishes.
 - **Scalability:** Easily adaptable to include more food categories or different cuisines.
 - **Modular Design:** Clear separation of data processing, model training, and evaluation modules.
@@ -185,7 +185,7 @@ This will provide metrics such as precision, recall, and mean Average Precision 
 
 # TODO:
 - [x] Make the project modular
-- [x] Finetuning YOLOv10, DERT
-- [x] To configure TensorBoard, wandb
+- [x] Finetuning YOLOv10, RT-DETR
+- [x] Configure TensorBoard, wandb
 - [x] Create application
 - [ ] Rewrite file with annotations
